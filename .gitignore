@@ -1,0 +1,27 @@
+# Xcode
+*.xcodeproj/
+!*.xcodeproj/project.pbxproj
+!*.xcodeproj/xcshareddata/
+DerivedData/
+build/
+
+# Swift Package Manager
+.build/
+.swiftpm/
+Package.resolved
+
+# macOS
+.DS_Store
+*.pem
+
+# MLX Models
+*.mlxmodel/
+models/
+
+# IDE
+.idea/
+*.swp
+*.swo
+
+# Testing
+coverage/
