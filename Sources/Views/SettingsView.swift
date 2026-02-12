@@ -1,5 +1,5 @@
 // SettingsView.swift
-// App Settings UI
+// App Settings UI - Menschlich & Verständlich
 
 import SwiftUI
 import ServiceManagement
@@ -16,22 +16,17 @@ struct SettingsView: View {
                     Label("Allgemein", systemImage: "gear")
                 }
             
-            TranscriptionSettingsView()
+            SpeechSettingsView()
                 .environmentObject(appState)
-                .tabItem {
-                    Label("Transkription", systemImage: "text.quote")
-                }
-            
-            ModelsSettingsView()
                 .environmentObject(transcriptionManager)
                 .tabItem {
-                    Label("Modelle", systemImage: "cpu")
+                    Label("Sprache", systemImage: "waveform")
                 }
             
             HotkeySettingsView()
                 .environmentObject(appState)
                 .tabItem {
-                    Label("Tastenkürzel", systemImage: "keyboard")
+                    Label("Steuerung", systemImage: "keyboard")
                 }
             
             TranscriptionHistoryView()
@@ -42,10 +37,10 @@ struct SettingsView: View {
             
             AboutView()
                 .tabItem {
-                    Label("Über", systemImage: "info.circle")
+                    Label("Info", systemImage: "info.circle")
                 }
         }
-        .frame(width: 500, height: 400)
+        .frame(width: 520, height: 420)
     }
 }
 
@@ -57,31 +52,30 @@ struct GeneralSettingsView: View {
     var body: some View {
         Form {
             Section {
-                Toggle("Beim Anmelden starten", isOn: $launchAtLogin)
+                Toggle("Sprech beim Mac-Start öffnen", isOn: $launchAtLogin)
                     .onChange(of: launchAtLogin) { _, newValue in
                         setLaunchAtLogin(newValue)
                     }
-                
-                Toggle("Ton bei Start/Stop abspielen", isOn: $appState.playSound)
-                
-                Toggle("Text automatisch kopieren", isOn: $appState.autoClipboard)
-                    .help("Kopiert den transkribierten Text automatisch in die Zwischenablage")
             } header: {
-                Text("Verhalten")
+                Text("Automatisch starten")
             }
             
             Section {
-                LabeledContent("Version") {
-                    Text("1.0.0")
-                        .foregroundStyle(.secondary)
-                }
-                
-                LabeledContent("Build") {
-                    Text("2024.1")
-                        .foregroundStyle(.secondary)
-                }
+                Toggle("Sound abspielen", isOn: $appState.playSound)
+                Text("Kurzer Ton wenn Aufnahme startet oder stoppt")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             } header: {
-                Text("Info")
+                Text("Feedback")
+            }
+            
+            Section {
+                Toggle("Text automatisch kopieren", isOn: $appState.autoClipboard)
+                Text("Nach dem Diktieren landet der Text direkt in deiner Zwischenablage — bereit zum Einfügen")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } header: {
+                Text("Nach dem Sprechen")
             }
         }
         .formStyle(.grouped)
@@ -103,172 +97,61 @@ struct GeneralSettingsView: View {
     }
 }
 
-// MARK: - Transcription Settings
-struct TranscriptionSettingsView: View {
+// MARK: - Speech Settings (Combined Language + Model Selection)
+struct SpeechSettingsView: View {
     @EnvironmentObject var appState: AppState
+    @EnvironmentObject var transcriptionManager: TranscriptionManager
+    @State private var downloadProgress: [String: Double] = [:]
+    @State private var isDownloading: [String: Bool] = [:]
     
     let languages = [
         ("de-DE", "🇩🇪 Deutsch"),
-        ("en-US", "🇺🇸 Englisch (US)"),
-        ("en-GB", "🇬🇧 Englisch (UK)"),
+        ("en-US", "🇺🇸 Englisch"),
         ("fr-FR", "🇫🇷 Französisch"),
         ("es-ES", "🇪🇸 Spanisch"),
         ("it-IT", "🇮🇹 Italienisch"),
-        ("pt-BR", "🇧🇷 Portugiesisch"),
-        ("nl-NL", "🇳🇱 Niederländisch"),
-        ("pl-PL", "🇵🇱 Polnisch"),
-        ("ja-JP", "🇯🇵 Japanisch"),
-        ("zh-CN", "🇨🇳 Chinesisch"),
     ]
     
     var body: some View {
         Form {
             Section {
-                Picker("Sprache", selection: $appState.selectedLanguage) {
+                Picker("Ich spreche", selection: $appState.selectedLanguage) {
                     ForEach(languages, id: \.0) { code, name in
                         Text(name).tag(code)
                     }
                 }
-                .help("Sprache für die Spracherkennung")
             } header: {
-                Text("Spracherkennung")
+                Text("Deine Sprache")
             }
             
-            Section {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Transkriptions-Engine")
-                        .font(.headline)
-                    
-                    Text("Sprech verwendet Apple's eingebaute Spracherkennung für schnelle, lokale Verarbeitung. Deine Aufnahmen verlassen nie dein Gerät.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            } header: {
-                Text("Datenschutz")
-            }
-        }
-        .formStyle(.grouped)
-    }
-}
-
-// MARK: - Hotkey Settings
-struct HotkeySettingsView: View {
-    @EnvironmentObject var appState: AppState
-    @State private var isRecordingHotkey = false
-    
-    var body: some View {
-        Form {
-            Section {
-                Toggle("Globales Tastenkürzel aktivieren", isOn: $appState.hotkeyEnabled)
-                
-                HStack {
-                    Text("Tastenkürzel")
-                    Spacer()
-                    
-                    HStack(spacing: 4) {
-                        KeyCapView(key: "⌘")
-                        KeyCapView(key: "⇧")
-                        KeyCapView(key: "D")
-                    }
-                }
-                
-                Text("Drücke ⌘⇧D um die Aufnahme zu starten/stoppen, egal welche App aktiv ist.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            } header: {
-                Text("Tastenkürzel")
-            }
-            
-            Section {
-                VStack(alignment: .leading, spacing: 8) {
-                    Label("Tipp", systemImage: "lightbulb.fill")
-                        .foregroundStyle(.yellow)
-                    
-                    Text("Für beste Ergebnisse:\n• Halte ⌘⇧D gedrückt während du sprichst\n• Oder drücke einmal zum Starten, nochmal zum Stoppen")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            } header: {
-                Text("Hinweise")
-            }
-        }
-        .formStyle(.grouped)
-    }
-}
-
-struct KeyCapView: View {
-    let key: String
-    
-    var body: some View {
-        Text(key)
-            .font(.system(.body, design: .rounded, weight: .medium))
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(.quaternary)
-            .clipShape(RoundedRectangle(cornerRadius: 4))
-    }
-}
-
-// MARK: - Models Settings (Provider Selection)
-struct ModelsSettingsView: View {
-    @EnvironmentObject var transcriptionManager: TranscriptionManager
-    @State private var downloadProgress: [String: Double] = [:]
-    @State private var isDownloading: [String: Bool] = [:]
-    @State private var errorMessage: String?
-    
-    var body: some View {
-        Form {
             Section {
                 ForEach(transcriptionManager.availableProviders, id: \.id) { provider in
-                    ProviderRowView(
+                    ModelRowView(
                         provider: provider,
                         isSelected: transcriptionManager.selectedProvider?.id == provider.id,
                         downloadProgress: downloadProgress[provider.id] ?? 0,
                         isDownloading: isDownloading[provider.id] ?? false,
                         onSelect: {
-                            Task {
-                                await transcriptionManager.switchProvider(to: provider)
-                            }
+                            Task { await transcriptionManager.switchProvider(to: provider) }
                         },
                         onDownload: {
-                            Task {
-                                await downloadModels(for: provider)
-                            }
+                            Task { await downloadModel(provider) }
                         },
                         onDelete: {
-                            Task {
-                                await deleteModels(for: provider)
-                            }
+                            Task { try? await transcriptionManager.deleteModels(for: provider.id) }
                         }
                     )
                 }
             } header: {
-                Text("Transcription Engines")
+                Text("Wie soll ich dich verstehen?")
             } footer: {
-                Text("Alle Engines funktionieren komplett offline. Keine API-Keys erforderlich.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            
-            Section {
-                Toggle("Nur Offline-Modelle verwenden", isOn: Binding(
-                    get: { transcriptionManager.currentSettings.preferOfflineOnly },
-                    set: { transcriptionManager.setPreferOfflineOnly($0) }
-                ))
-                .help("Verhindert die Nutzung von Server-basierter Erkennung")
-                
-                Toggle("Modelle automatisch herunterladen", isOn: .constant(false))
-                    .disabled(true)
-                    .help("Kommt bald: Automatischer Download von empfohlenen Modellen")
-            } header: {
-                Text("Einstellungen")
-            }
-            
-            if let error = errorMessage {
-                Section {
-                    Label(error, systemImage: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.red)
+                VStack(alignment: .leading, spacing: 4) {
+                    Label("Alles bleibt auf deinem Mac", systemImage: "lock.shield.fill")
+                    Text("Deine Stimme wird nie ins Internet geschickt.")
                 }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .padding(.top, 4)
             }
         }
         .formStyle(.grouped)
@@ -277,37 +160,19 @@ struct ModelsSettingsView: View {
         }
     }
     
-    private func downloadModels(for provider: any TranscriptionProvider) async {
+    private func downloadModel(_ provider: any TranscriptionProvider) async {
         isDownloading[provider.id] = true
-        downloadProgress[provider.id] = 0
-        errorMessage = nil
-        
-        do {
-            try await transcriptionManager.downloadModels(for: provider.id) { progress in
-                Task { @MainActor in
-                    downloadProgress[provider.id] = progress
-                }
+        try? await transcriptionManager.downloadModels(for: provider.id) { progress in
+            Task { @MainActor in
+                downloadProgress[provider.id] = progress
             }
-            isDownloading[provider.id] = false
-        } catch {
-            errorMessage = error.localizedDescription
-            isDownloading[provider.id] = false
         }
-    }
-    
-    private func deleteModels(for provider: any TranscriptionProvider) async {
-        errorMessage = nil
-        
-        do {
-            try await transcriptionManager.deleteModels(for: provider.id)
-        } catch {
-            errorMessage = error.localizedDescription
-        }
+        isDownloading[provider.id] = false
     }
 }
 
-// MARK: - Provider Row
-struct ProviderRowView: View {
+// MARK: - Model Row (Human-Friendly)
+struct ModelRowView: View {
     let provider: any TranscriptionProvider
     let isSelected: Bool
     let downloadProgress: Double
@@ -316,127 +181,286 @@ struct ProviderRowView: View {
     let onDownload: () -> Void
     let onDelete: () -> Void
     
-    @State private var status: ProviderStatus = .unavailable(reason: "Laden...")
+    @State private var status: ProviderStatus = .unavailable(reason: "")
+    
+    private var humanName: String {
+        switch provider.id {
+        case "apple-speech": return "Standard"
+        case "whisper-tiny": return "Schnell"
+        case "whisper-base": return "Schnell+"
+        case "whisper-small": return "Ausgewogen"
+        case "whisper-medium": return "Präzise"
+        case "whisper-large": return "Maximum"
+        case "voxtral": return "Voxtral"
+        default: return provider.displayName
+        }
+    }
+    
+    private var humanDescription: String {
+        switch provider.id {
+        case "apple-speech": 
+            return "Eingebaut in deinen Mac. Sofort einsatzbereit."
+        case "whisper-tiny": 
+            return "Blitzschnell, gut für kurze Notizen"
+        case "whisper-base": 
+            return "Schnell mit besserer Genauigkeit"
+        case "whisper-small": 
+            return "Gute Balance aus Geschwindigkeit und Qualität"
+        case "whisper-medium": 
+            return "Sehr genau, ideal für wichtige Texte"
+        case "whisper-large": 
+            return "Beste Qualität, braucht mehr Zeit"
+        case "voxtral": 
+            return "Kommt bald — neues Modell von Mistral"
+        default: 
+            return provider.description
+        }
+    }
+    
+    private var icon: String {
+        switch provider.id {
+        case "apple-speech": return "apple.logo"
+        case "voxtral": return "sparkles"
+        default: return "brain"
+        }
+    }
+    
+    private var isComingSoon: Bool {
+        provider.id == "voxtral"
+    }
     
     var body: some View {
-        HStack(spacing: 12) {
-            // Selection indicator
-            Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                .foregroundStyle(isSelected ? .accent : .secondary)
-                .font(.title2)
+        HStack(spacing: 14) {
+            // Selection
+            ZStack {
+                Circle()
+                    .stroke(isSelected ? Color.accentColor : Color.secondary.opacity(0.3), lineWidth: 2)
+                    .frame(width: 22, height: 22)
+                
+                if isSelected {
+                    Circle()
+                        .fill(Color.accentColor)
+                        .frame(width: 14, height: 14)
+                }
+            }
             
-            // Provider info
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    Text(provider.displayName)
+            // Icon
+            Image(systemName: icon)
+                .font(.title2)
+                .foregroundStyle(isComingSoon ? .secondary : .primary)
+                .frame(width: 28)
+            
+            // Info
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
+                    Text(humanName)
                         .font(.headline)
+                        .foregroundStyle(isComingSoon ? .secondary : .primary)
                     
-                    if provider.isOfflineCapable {
-                        Image(systemName: "wifi.slash")
-                            .font(.caption)
+                    if isComingSoon {
+                        Text("BALD")
+                            .font(.caption2)
+                            .fontWeight(.bold)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(.blue.opacity(0.2))
+                            .foregroundStyle(.blue)
+                            .clipShape(Capsule())
+                    } else if case .ready = status {
+                        Image(systemName: "checkmark.circle.fill")
                             .foregroundStyle(.green)
-                            .help("Funktioniert offline")
+                            .font(.caption)
                     }
                 }
                 
-                Text(provider.description)
+                Text(humanDescription)
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                    .lineLimit(2)
-                
-                // Status
-                HStack(spacing: 4) {
-                    statusIcon
-                    Text(status.displayText)
-                        .font(.caption2)
-                        .foregroundStyle(statusColor)
-                }
+                    .lineLimit(1)
             }
             
             Spacer()
             
-            // Actions
-            actionButtons
+            // Action
+            if !isComingSoon {
+                actionView
+            }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 6)
         .contentShape(Rectangle())
         .onTapGesture {
-            if status.isAvailable {
+            if !isComingSoon && status.isAvailable {
                 onSelect()
             }
         }
+        .opacity(isComingSoon ? 0.6 : 1)
         .task {
             status = await provider.status
         }
     }
     
     @ViewBuilder
-    private var statusIcon: some View {
-        switch status {
-        case .ready:
-            Image(systemName: "checkmark.circle.fill")
-                .foregroundStyle(.green)
-        case .downloading:
-            ProgressView()
-                .scaleEffect(0.6)
-        case .needsDownload:
-            Image(systemName: "arrow.down.circle")
-                .foregroundStyle(.blue)
-        case .unavailable:
-            Image(systemName: "xmark.circle")
-                .foregroundStyle(.orange)
-        case .error:
-            Image(systemName: "exclamationmark.triangle.fill")
-                .foregroundStyle(.red)
-        }
-    }
-    
-    private var statusColor: Color {
-        switch status {
-        case .ready: return .green
-        case .downloading: return .blue
-        case .needsDownload: return .blue
-        case .unavailable: return .orange
-        case .error: return .red
-        }
-    }
-    
-    @ViewBuilder
-    private var actionButtons: some View {
+    private var actionView: some View {
         if isDownloading {
             VStack(spacing: 2) {
                 ProgressView(value: downloadProgress)
-                    .frame(width: 60)
+                    .frame(width: 50)
                 Text("\(Int(downloadProgress * 100))%")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
-        } else if provider.requiresDownload {
-            if case .needsDownload = status {
-                Button(action: onDownload) {
-                    VStack(spacing: 2) {
-                        Image(systemName: "arrow.down.circle.fill")
-                            .font(.title2)
-                        if let size = provider.downloadSize {
-                            Text(size)
-                                .font(.caption2)
+        } else if case .needsDownload = status {
+            Button(action: onDownload) {
+                VStack(spacing: 1) {
+                    Image(systemName: "arrow.down.circle.fill")
+                        .font(.title3)
+                    if let size = provider.downloadSize {
+                        Text(size)
+                            .font(.caption2)
+                    }
+                }
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.accent)
+        } else if case .ready = status, provider.requiresDownload {
+            Menu {
+                Button(role: .destructive, action: onDelete) {
+                    Label("Löschen", systemImage: "trash")
+                }
+            } label: {
+                Image(systemName: "ellipsis.circle")
+                    .foregroundStyle(.secondary)
+            }
+            .menuStyle(.borderlessButton)
+            .frame(width: 24)
+        }
+    }
+}
+
+// MARK: - Hotkey Settings
+struct HotkeySettingsView: View {
+    @EnvironmentObject var appState: AppState
+    
+    var body: some View {
+        Form {
+            Section {
+                VStack(alignment: .leading, spacing: 16) {
+                    HStack {
+                        Text("Zum Diktieren drücke")
+                        Spacer()
+                        HStack(spacing: 4) {
+                            KeyCapView(key: "⌘")
+                            KeyCapView(key: "⇧")
+                            KeyCapView(key: "D")
+                        }
+                    }
+                    
+                    Text("Funktioniert überall — egal welche App gerade offen ist")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            } header: {
+                Text("Tastenkürzel")
+            }
+            
+            Section {
+                VStack(alignment: .leading, spacing: 12) {
+                    TipRow(emoji: "👆", text: "Einmal drücken startet die Aufnahme, nochmal drücken stoppt sie")
+                    TipRow(emoji: "✊", text: "Oder: Gedrückt halten während du sprichst, loslassen wenn fertig")
+                    TipRow(emoji: "🎯", text: "Der Text wird dort eingefügt, wo dein Cursor gerade ist")
+                }
+            } header: {
+                Text("So funktioniert's")
+            }
+        }
+        .formStyle(.grouped)
+    }
+}
+
+struct TipRow: View {
+    let emoji: String
+    let text: String
+    
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Text(emoji)
+            Text(text)
+                .font(.callout)
+                .foregroundStyle(.secondary)
+        }
+    }
+}
+
+struct KeyCapView: View {
+    let key: String
+    
+    var body: some View {
+        Text(key)
+            .font(.system(.body, design: .rounded, weight: .semibold))
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(.quaternary)
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+    }
+}
+
+// MARK: - History View (simplified)
+struct TranscriptionHistoryView: View {
+    @EnvironmentObject var appState: AppState
+    
+    var body: some View {
+        VStack {
+            if appState.transcriptionHistory.isEmpty {
+                VStack(spacing: 12) {
+                    Image(systemName: "text.bubble")
+                        .font(.system(size: 48))
+                        .foregroundStyle(.tertiary)
+                    Text("Noch keine Aufnahmen")
+                        .font(.headline)
+                        .foregroundStyle(.secondary)
+                    Text("Deine diktierten Texte erscheinen hier")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                List {
+                    ForEach(appState.transcriptionHistory.reversed(), id: \.id) { item in
+                        HistoryRowView(item: item)
+                    }
+                    .onDelete { indexSet in
+                        let reversed = Array(appState.transcriptionHistory.reversed())
+                        for index in indexSet {
+                            if let originalIndex = appState.transcriptionHistory.firstIndex(where: { $0.id == reversed[index].id }) {
+                                appState.transcriptionHistory.remove(at: originalIndex)
+                            }
                         }
                     }
                 }
-                .buttonStyle(.plain)
-                .foregroundStyle(.accent)
-            } else if case .ready = status {
-                Menu {
-                    Button(role: .destructive, action: onDelete) {
-                        Label("Modell löschen", systemImage: "trash")
-                    }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
-                        .font(.title3)
-                        .foregroundStyle(.secondary)
-                }
-                .menuStyle(.borderlessButton)
-                .frame(width: 30)
+            }
+        }
+    }
+}
+
+struct HistoryRowView: View {
+    let item: TranscriptionHistoryItem
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(item.text)
+                .lineLimit(2)
+            
+            Text(item.timestamp, style: .relative)
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+        }
+        .padding(.vertical, 4)
+        .contextMenu {
+            Button {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(item.text, forType: .string)
+            } label: {
+                Label("Kopieren", systemImage: "doc.on.doc")
             }
         }
     }
@@ -445,44 +469,67 @@ struct ProviderRowView: View {
 // MARK: - About View
 struct AboutView: View {
     var body: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 24) {
+            Spacer()
+            
             Image(systemName: "waveform.circle.fill")
-                .font(.system(size: 64))
+                .font(.system(size: 72))
                 .foregroundStyle(.accent)
             
-            Text("Sprech")
-                .font(.largeTitle)
-                .fontWeight(.bold)
-            
-            Text("Diktiersoftware für macOS")
-                .font(.title3)
-                .foregroundStyle(.secondary)
-            
-            Divider()
-                .frame(width: 200)
+            VStack(spacing: 4) {
+                Text("Sprech")
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+                
+                Text("Diktieren, einfach gemacht")
+                    .font(.title3)
+                    .foregroundStyle(.secondary)
+            }
             
             VStack(spacing: 8) {
-                Text("Version 1.0.0")
-                Text("© 2024")
+                FeatureRow(icon: "waveform", text: "Sprache zu Text")
+                FeatureRow(icon: "sparkles", text: "Füllwörter entfernen")
+                FeatureRow(icon: "globe", text: "Übersetzen")
+                FeatureRow(icon: "lock.shield", text: "100% privat")
             }
-            .font(.caption)
-            .foregroundStyle(.tertiary)
+            .padding(.vertical)
             
             Spacer()
             
-            HStack(spacing: 20) {
-                Link(destination: URL(string: "https://github.com")!) {
-                    Label("GitHub", systemImage: "link")
-                }
-                
-                Link(destination: URL(string: "mailto:support@example.com")!) {
-                    Label("Support", systemImage: "envelope")
-                }
-            }
-            .font(.caption)
+            Text("Version 1.0")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
         }
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+struct FeatureRow: View {
+    let icon: String
+    let text: String
+    
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .foregroundStyle(.accent)
+                .frame(width: 20)
+            Text(text)
+                .font(.callout)
+        }
+    }
+}
+
+// MARK: - Transcription History Item (if not defined elsewhere)
+struct TranscriptionHistoryItem: Identifiable, Codable {
+    let id: UUID
+    let text: String
+    let timestamp: Date
+    
+    init(text: String) {
+        self.id = UUID()
+        self.text = text
+        self.timestamp = Date()
     }
 }
 
