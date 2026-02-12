@@ -23,11 +23,6 @@ struct SprechApp: App {
             }
         }
         .menuBarExtraStyle(.window)
-        
-        Settings {
-            SettingsView()
-                .environmentObject(appState)
-        }
     }
 }
 

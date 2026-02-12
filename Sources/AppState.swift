@@ -3,6 +3,7 @@
 
 import SwiftUI
 import Combine
+import ApplicationServices
 
 @MainActor
 final class AppState: ObservableObject {
@@ -110,9 +111,9 @@ final class AppState: ObservableObject {
             transcriptionHistory = Array(transcriptionHistory.prefix(50))
         }
         
-        // Auto-copy to clipboard
+        // Auto-copy/insert
         if autoClipboard {
-            copyToClipboard(text)
+            insertOrCopyText(text)
         }
     }
     
@@ -122,11 +123,66 @@ final class AppState: ObservableObject {
         isTranscribing = false
     }
     
-    // MARK: - Clipboard
+    // MARK: - Clipboard & Text Insertion
     func copyToClipboard(_ text: String) {
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
+    }
+    
+    /// Prüft ob ein Textfeld fokussiert ist und fügt Text ein oder kopiert
+    func insertOrCopyText(_ text: String) {
+        copyToClipboard(text)
+        
+        if isTextFieldFocused() {
+            // Kleiner Delay, dann Cmd+V simulieren
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                self.simulatePaste()
+            }
+        }
+        // Visuelles Feedback wird vom MenuBarView gehandelt
+        NotificationCenter.default.post(name: .textInserted, object: nil)
+    }
+    
+    private func isTextFieldFocused() -> Bool {
+        guard let focusedApp = NSWorkspace.shared.frontmostApplication else {
+            return false
+        }
+        
+        let appElement = AXUIElementCreateApplication(focusedApp.processIdentifier)
+        var focusedElement: CFTypeRef?
+        let result = AXUIElementCopyAttributeValue(appElement, kAXFocusedUIElementAttribute as CFString, &focusedElement)
+        
+        guard result == .success, let element = focusedElement else {
+            return false
+        }
+        
+        var role: CFTypeRef?
+        AXUIElementCopyAttributeValue(element as! AXUIElement, kAXRoleAttribute as CFString, &role)
+        
+        if let roleString = role as? String {
+            return roleString == kAXTextFieldRole as String || 
+                   roleString == kAXTextAreaRole as String ||
+                   roleString == "AXWebArea" ||
+                   roleString == "AXComboBox"
+        }
+        
+        return false
+    }
+    
+    private func simulatePaste() {
+        let source = CGEventSource(stateID: .combinedSessionState)
+        
+        // V key = 0x09
+        if let keyDown = CGEvent(keyboardEventSource: source, virtualKey: 0x09, keyDown: true) {
+            keyDown.flags = .maskCommand
+            keyDown.post(tap: .cghidEventTap)
+        }
+        
+        if let keyUp = CGEvent(keyboardEventSource: source, virtualKey: 0x09, keyDown: false) {
+            keyUp.flags = .maskCommand
+            keyUp.post(tap: .cghidEventTap)
+        }
     }
     
     // MARK: - History Management
@@ -161,4 +217,5 @@ extension Notification.Name {
     static let startAudioCapture = Notification.Name("startAudioCapture")
     static let stopAudioCapture = Notification.Name("stopAudioCapture")
     static let transcriptionComplete = Notification.Name("transcriptionComplete")
+    static let textInserted = Notification.Name("textInserted")
 }
