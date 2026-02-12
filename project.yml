@@ -21,7 +21,10 @@ targets:
     type: application
     platform: macOS
     sources:
-      - Sprech
+      - path: Sources
+        group: Sources
+      - path: Sprech/Resources
+        group: Resources
     settings:
       base:
         PRODUCT_NAME: Sprech
@@ -31,6 +34,9 @@ targets:
         SWIFT_EMIT_LOC_STRINGS: "YES"
         ENABLE_HARDENED_RUNTIME: "YES"
         CODE_SIGN_ENTITLEMENTS: Sprech/Resources/Sprech.entitlements
+        LD_RUNPATH_SEARCH_PATHS: 
+          - "$(inherited)"
+          - "@executable_path/../Frameworks"
     dependencies: []
     postBuildScripts: []
 

@@ -24,25 +24,23 @@
     <string>$(MACOSX_DEPLOYMENT_TARGET)</string>
     <key>NSHumanReadableCopyright</key>
     <string>Copyright © 2025 Sprech Contributors. All rights reserved.</string>
-    <key>NSMainStoryboardFile</key>
-    <string></string>
     <key>NSPrincipalClass</key>
     <string>NSApplication</string>
     
+    <!-- Menubar-only App (no Dock icon) -->
+    <key>LSUIElement</key>
+    <true/>
+    
     <!-- Speech Recognition -->
     <key>NSSpeechRecognitionUsageDescription</key>
-    <string>Sprech needs microphone access to transcribe your speech into text.</string>
+    <string>Sprech benötigt Zugriff auf die Spracherkennung, um deine Sprache in Text umzuwandeln.</string>
     
     <!-- Microphone -->
     <key>NSMicrophoneUsageDescription</key>
-    <string>Sprech needs microphone access to capture audio for speech recognition.</string>
+    <string>Sprech benötigt Mikrofonzugriff, um Audio für die Spracherkennung aufzunehmen.</string>
     
     <!-- Accessibility -->
     <key>NSAccessibilityUsageDescription</key>
-    <string>Sprech needs accessibility access to insert transcribed text into other applications.</string>
-    
-    <!-- Background Modes -->
-    <key>LSBackgroundOnly</key>
-    <true/>
+    <string>Sprech benötigt Bedienungshilfen-Zugriff, um transkribierten Text in andere Apps einzufügen.</string>
 </dict>
 </plist>
