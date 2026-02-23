@@ -19,14 +19,25 @@ jobs:
           xcode-version: '15.2'
       
       - name: Install XcodeGen and create-dmg
-        run: brew install xcodegen create-dmg
+        run: |
+          brew install xcodegen create-dmg
       
       - name: Generate Xcode Project
         run: |
-          # Use --no-env and limited threads to prevent hangs
-          xcodegen generate --no-env
-          echo "Project generated"
-        timeout-minutes: 15
+          # Try xcodegen with minimal options
+          timeout 300 xcodegen generate --no-env 2>&1 || {
+            echo "xcodegen timed out or failed, checking if project exists..."
+          }
+          # Check if project was created despite timeout
+          if [ -d "Sprech.xcodeproj" ]; then
+            echo "Project exists"
+            ls -la
+          else
+            echo "No project - listing files:"
+            ls -la
+            exit 1
+          fi
+        timeout-minutes: 10
       
       - name: Build Release
         timeout-minutes: 30
@@ -39,7 +50,8 @@ jobs:
             -derivedDataPath build \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO
+            CODE_SIGNING_ALLOWED=NO \
+            ENABLE_USER_SCRIPT_SANDBOXING=NO
       
       - name: Create DMG
         run: |
@@ -47,7 +59,6 @@ jobs:
           if [ -d "$APP_PATH" ]; then
             create-dmg \
               --volname "Sprech" \
-              --volicon "$APP_PATH/Contents/Resources/AppIcon.icns" \
               --window-pos 200 120 \
               --window-size 600 400 \
               --icon-size 100 \
@@ -57,9 +68,7 @@ jobs:
               "Sprech-${{ github.ref_name }}-macOS.dmg" \
               "$APP_PATH" \
             || true
-            # create-dmg returns non-zero if code signing fails, but DMG is still created
             if [ ! -f "Sprech-${{ github.ref_name }}-macOS.dmg" ]; then
-              echo "DMG not created, trying without custom icon"
               create-dmg \
                 --volname "Sprech" \
                 --window-pos 200 120 \
