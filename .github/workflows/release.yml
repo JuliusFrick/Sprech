@@ -18,70 +18,62 @@ jobs:
         with:
           xcode-version: '15.2'
       
-      - name: Install XcodeGen and create-dmg
-        run: |
-          brew install xcodegen create-dmg
+      - name: Install XcodeGen
+        run: brew install xcodegen
       
-      - name: Generate Xcode Project
+      - name: Generate project
         run: |
-          # Try xcodegen with minimal options
-          timeout 300 xcodegen generate --no-env 2>&1 || {
-            echo "xcodegen timed out or failed, checking if project exists..."
-          }
-          # Check if project was created despite timeout
-          if [ -d "Sprech.xcodeproj" ]; then
-            echo "Project exists"
-            ls -la
-          else
-            echo "No project - listing files:"
+          xcodegen generate &
+          XCODEGEN_PID=$!
+          # Wait max 3 minutes
+          for i in {1..180}; do
+            sleep 1
+            if [ -d "Sprech.xcodeproj" ]; then
+              kill $XCODEGEN_PID 2>/dev/null || true
+              echo "Project generated!"
+              break
+            fi
+            if ! ps -p $XCODEGEN_PID > /dev/null 2>&1; then
+              break
+            fi
+          done
+          # If still no project, fail
+          if [ ! -d "Sprech.xcodeproj" ]; then
+            kill $XCODEGEN_PID 2>/dev/null || true
+            echo "Project NOT generated, checking files..."
             ls -la
             exit 1
           fi
-        timeout-minutes: 10
+        timeout-minutes: 5
       
-      - name: Build Release
-        timeout-minutes: 30
+      - name: Build
         run: |
-          xcodebuild build \
-            -project Sprech.xcodeproj \
+          xcodebuild -project Sprech.xcodeproj \
             -scheme Sprech \
-            -destination 'platform=macOS' \
             -configuration Release \
+            -destination 'platform=macOS' \
             -derivedDataPath build \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
-            ENABLE_USER_SCRIPT_SANDBOXING=NO
+            CODE_SIGNING_ALLOWED=NO
+        timeout-minutes: 25
       
       - name: Create DMG
         run: |
           APP_PATH="build/Build/Products/Release/Sprech.app"
           if [ -d "$APP_PATH" ]; then
-            create-dmg \
-              --volname "Sprech" \
-              --window-pos 200 120 \
-              --window-size 600 400 \
-              --icon-size 100 \
-              --icon "Sprech.app" 150 185 \
-              --hide-extension "Sprech.app" \
-              --app-drop-link 450 185 \
-              "Sprech-${{ github.ref_name }}-macOS.dmg" \
-              "$APP_PATH" \
+            create-dmg --volname "Sprech" --window-pos 200 120 --window-size 600 400 \
+              --icon-size 100 --icon "Sprech.app" 150 185 \
+              --hide-extension "Sprech.app" --app-drop-link 450 185 \
+              "Sprech-${{ github.ref_name }}-macOS.dmg" "$APP_PATH" \
             || true
             if [ ! -f "Sprech-${{ github.ref_name }}-macOS.dmg" ]; then
-              create-dmg \
-                --volname "Sprech" \
-                --window-pos 200 120 \
-                --window-size 600 400 \
-                --icon-size 100 \
-                --icon "Sprech.app" 150 185 \
-                --hide-extension "Sprech.app" \
-                --app-drop-link 450 185 \
-                "Sprech-${{ github.ref_name }}-macOS.dmg" \
-                "$APP_PATH"
+              create-dmg --volname "Sprech" --window-pos 200 120 --window-size 600 400 \
+                --icon-size 100 --icon "Sprech.app" 150 185 \
+                --hide-extension "Sprech.app" --app-drop-link 450 185 \
+                "Sprech-${{ github.ref_name }}-macOS.dmg" "$APP_PATH"
             fi
           else
-            echo "App not found at $APP_PATH"
             find build -name "*.app" -type d
             exit 1
           fi
@@ -92,8 +84,4 @@ jobs:
           name: Sprech ${{ github.ref_name }}
           draft: false
           prerelease: ${{ contains(github.ref_name, '-') }}
-          generate_release_notes: true
-          files: |
-            Sprech-${{ github.ref_name }}-macOS.dmg
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          files: Sprech-${{ github.ref_name }}-macOS.dmg
