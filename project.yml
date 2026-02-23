@@ -9,7 +9,7 @@ options:
 settings:
   base:
     SWIFT_VERSION: "6.0"
-    MARKETING_VERSION: "0.1.0"
+    MARKETING_VERSION: "0.1.4"
     CURRENT_PROJECT_VERSION: "1"
     DEVELOPMENT_TEAM: ""
     CODE_SIGN_IDENTITY: "-"
@@ -40,7 +40,10 @@ targets:
     dependencies: []
     postBuildScripts: []
 
-# MLX package commented out temporarily - causing xcodegen to hang
+# TODO: Re-enable MLX package when xcodegen package resolution is fixed
+# The MLX-Swift package has many dependencies that cause xcodegen to hang
+# during project generation. For now, building without on-device ML features.
+# 
 # packages:
 #   MLX:
 #     url: https://github.com/ml-explore/mlx-swift
