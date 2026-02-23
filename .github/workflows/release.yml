@@ -23,11 +23,10 @@ jobs:
       
       - name: Generate Xcode Project
         run: |
-          # Generate project without packages first, then add them via xcodebuild
-          xcodegen generate
+          # Generate project - skip package resolution
+          xcodegen generate --spec project.yml
           echo "Project generated successfully"
-          ls -la *.xcodeproj
-        timeout-minutes: 2
+        timeout-minutes: 10
       
       - name: Build Release
         timeout-minutes: 30
