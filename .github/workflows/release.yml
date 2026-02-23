@@ -18,8 +18,8 @@ jobs:
         with:
           xcode-version: '15.2'
       
-      - name: Install XcodeGen
-        run: brew install xcodegen
+      - name: Install XcodeGen and create-dmg
+        run: brew install xcodegen create-dmg
       
       - name: Generate Xcode Project
         run: xcodegen generate
@@ -36,13 +36,36 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
       
-      - name: Package App
+      - name: Create DMG
         run: |
           APP_PATH="build/Build/Products/Release/Sprech.app"
           if [ -d "$APP_PATH" ]; then
-            cd build/Build/Products/Release
-            zip -r -y Sprech-${{ github.ref_name }}-macOS.zip Sprech.app
-            mv Sprech-${{ github.ref_name }}-macOS.zip ${{ github.workspace }}/
+            create-dmg \
+              --volname "Sprech" \
+              --volicon "$APP_PATH/Contents/Resources/AppIcon.icns" \
+              --window-pos 200 120 \
+              --window-size 600 400 \
+              --icon-size 100 \
+              --icon "Sprech.app" 150 185 \
+              --hide-extension "Sprech.app" \
+              --app-drop-link 450 185 \
+              "Sprech-${{ github.ref_name }}-macOS.dmg" \
+              "$APP_PATH" \
+            || true
+            # create-dmg returns non-zero if code signing fails, but DMG is still created
+            if [ ! -f "Sprech-${{ github.ref_name }}-macOS.dmg" ]; then
+              echo "DMG not created, trying without custom icon"
+              create-dmg \
+                --volname "Sprech" \
+                --window-pos 200 120 \
+                --window-size 600 400 \
+                --icon-size 100 \
+                --icon "Sprech.app" 150 185 \
+                --hide-extension "Sprech.app" \
+                --app-drop-link 450 185 \
+                "Sprech-${{ github.ref_name }}-macOS.dmg" \
+                "$APP_PATH"
+            fi
           else
             echo "App not found at $APP_PATH"
             find build -name "*.app" -type d
@@ -57,6 +80,6 @@ jobs:
           prerelease: ${{ contains(github.ref_name, '-') }}
           generate_release_notes: true
           files: |
-            Sprech-${{ github.ref_name }}-macOS.zip
+            Sprech-${{ github.ref_name }}-macOS.dmg
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
