@@ -37,7 +37,11 @@ targets:
         LD_RUNPATH_SEARCH_PATHS: 
           - "$(inherited)"
           - "@executable_path/../Frameworks"
-    dependencies: []
+    dependencies:
+      - package: MLX
+        product: MLX
+      - package: MLX
+        product: MLXRandom
     postBuildScripts: []
 
 packages:

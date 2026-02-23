@@ -23,8 +23,10 @@ jobs:
       
       - name: Generate Xcode Project
         run: xcodegen generate
+        timeout-minutes: 5
       
       - name: Build Release
+        timeout-minutes: 30
         run: |
           xcodebuild build \
             -project Sprech.xcodeproj \
