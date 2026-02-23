@@ -63,6 +63,7 @@ jobs:
           APP_PATH="build/Build/Products/Release/Sprech.app"
           if [ -d "$APP_PATH" ]; then
             mkdir -p dmg
+            trap 'rm -rf dmg' EXIT
             cp -R "$APP_PATH" dmg/
             hdiutil create -volname "Sprech" -srcfolder dmg \
               -ov -format UDZO "Sprech-${{ github.ref_name }}-macOS.dmg"
