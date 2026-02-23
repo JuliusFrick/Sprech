@@ -37,14 +37,11 @@ targets:
         LD_RUNPATH_SEARCH_PATHS: 
           - "$(inherited)"
           - "@executable_path/../Frameworks"
-    dependencies:
-      - package: MLX
-        product: MLX
-      - package: MLX
-        product: MLXRandom
+    dependencies: []
     postBuildScripts: []
 
-packages:
-  MLX:
-    url: https://github.com/ml-explore/mlx-swift
-    from: "0.15.0"
+# MLX package commented out temporarily - causing xcodegen to hang
+# packages:
+#   MLX:
+#     url: https://github.com/ml-explore/mlx-swift
+#     from: "0.15.0"

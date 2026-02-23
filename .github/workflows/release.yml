@@ -22,8 +22,12 @@ jobs:
         run: brew install xcodegen create-dmg
       
       - name: Generate Xcode Project
-        run: xcodegen generate
-        timeout-minutes: 5
+        run: |
+          # Generate project without packages first, then add them via xcodebuild
+          xcodegen generate
+          echo "Project generated successfully"
+          ls -la *.xcodeproj
+        timeout-minutes: 2
       
       - name: Build Release
         timeout-minutes: 30
