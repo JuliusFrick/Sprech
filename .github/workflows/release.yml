@@ -23,10 +23,10 @@ jobs:
       
       - name: Generate Xcode Project
         run: |
-          # Generate project - skip package resolution
-          xcodegen generate --spec project.yml
-          echo "Project generated successfully"
-        timeout-minutes: 10
+          # Use --no-env and limited threads to prevent hangs
+          xcodegen generate --no-env
+          echo "Project generated"
+        timeout-minutes: 15
       
       - name: Build Release
         timeout-minutes: 30
