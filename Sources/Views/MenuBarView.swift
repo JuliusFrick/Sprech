@@ -104,7 +104,7 @@ struct MenuBarView: View {
                     PulsingMicCircle(isActive: false)
                         .frame(width: 32, height: 32)
                     
-                    Text("⌘⇧D")
+                    Text("Fn halten oder ⌘⇧D")
                         .font(.system(.caption, design: .rounded, weight: .semibold))
                         .foregroundStyle(.secondary)
                     
@@ -436,17 +436,23 @@ extension Notification.Name {
 
 // MARK: - Preview
 
-#Preview("Idle") {
-    MenuBarView()
-        .environmentObject(AppState())
+#if DEBUG
+struct MenuBarView_Previews: PreviewProvider {
+    static var previews: some View {
+        Group {
+            MenuBarView()
+                .environmentObject(AppState())
+                .previewDisplayName("Idle")
+            
+            MenuBarView()
+                .environmentObject({
+                    let state = AppState()
+                    state.isRecording = true
+                    state.recordingDuration = 3.7
+                    return state
+                }())
+                .previewDisplayName("Recording")
+        }
+    }
 }
-
-#Preview("Recording") {
-    MenuBarView()
-        .environmentObject({
-            let state = AppState()
-            state.isRecording = true
-            state.recordingDuration = 3.7
-            return state
-        }())
-}
+#endif

@@ -33,6 +33,7 @@ final class AppState: ObservableObject {
     // MARK: - Private
     private var cancellables = Set<AnyCancellable>()
     private var recordingTimer: Timer?
+    private var isFunctionHoldRecording = false
     
     init() {
         setupNotifications()
@@ -44,6 +45,20 @@ final class AppState: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.toggleRecording()
+            }
+            .store(in: &cancellables)
+        
+        NotificationCenter.default.publisher(for: .functionKeyDown)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.startFunctionHoldRecording()
+            }
+            .store(in: &cancellables)
+        
+        NotificationCenter.default.publisher(for: .functionKeyUp)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.stopFunctionHoldRecording()
             }
             .store(in: &cancellables)
     }
@@ -63,6 +78,7 @@ final class AppState: ObservableObject {
         isRecording = true
         recordingDuration = 0
         errorMessage = nil
+        NotchGlowController.shared.setRecordingActive(true)
         
         // Start duration timer
         recordingTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
@@ -84,8 +100,10 @@ final class AppState: ObservableObject {
         guard isRecording else { return }
         
         isRecording = false
+        isFunctionHoldRecording = false
         recordingTimer?.invalidate()
         recordingTimer = nil
+        NotchGlowController.shared.setRecordingActive(false)
         
         // Play stop sound
         if playSound {
@@ -149,6 +167,19 @@ final class AppState: ObservableObject {
         errorMessage = message
         isRecording = false
         isTranscribing = false
+        isFunctionHoldRecording = false
+        NotchGlowController.shared.setRecordingActive(false)
+    }
+
+    private func startFunctionHoldRecording() {
+        guard !isRecording else { return }
+        isFunctionHoldRecording = true
+        startRecording()
+    }
+    
+    private func stopFunctionHoldRecording() {
+        guard isFunctionHoldRecording else { return }
+        stopRecording()
     }
     
     // MARK: - Language Detection (simple heuristic)
@@ -286,7 +317,6 @@ struct TranscriptionEntry: Identifiable, Codable {
 
 // MARK: - Additional Notifications
 extension Notification.Name {
-    static let toggleRecording = Notification.Name("toggleRecording")
     static let startAudioCapture = Notification.Name("startAudioCapture")
     static let stopAudioCapture = Notification.Name("stopAudioCapture")
     static let transcriptionComplete = Notification.Name("transcriptionComplete")

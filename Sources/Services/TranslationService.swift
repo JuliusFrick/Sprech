@@ -8,6 +8,27 @@
 import Foundation
 import Translation
 import OSLog
+import NaturalLanguage
+
+public struct LanguagePair: Hashable, Sendable {
+    public let source: Locale.Language?
+    public let target: Locale.Language
+    
+    public init(source: Locale.Language?, target: Locale.Language) {
+        self.source = source
+        self.target = target
+    }
+    
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(source?.minimalIdentifier)
+        hasher.combine(target.minimalIdentifier)
+    }
+    
+    public static func == (lhs: LanguagePair, rhs: LanguagePair) -> Bool {
+        lhs.source?.minimalIdentifier == rhs.source?.minimalIdentifier &&
+        lhs.target.minimalIdentifier == rhs.target.minimalIdentifier
+    }
+}
 
 /// Service für On-Device Übersetzungen mit Apple Translation Framework
 @MainActor
@@ -97,13 +118,13 @@ public final class TranslationService: ObservableObject {
                 wasAutoDetected = false
             } else {
                 // Automatische Spracherkennung
-                let pair = LanguagePair(source: nil, target: targetLocale)
+                let detectedLocale = detectSourceLocale(for: text) ?? Locale.Language(identifier: "en")
+                let pair = LanguagePair(source: detectedLocale, target: targetLocale)
                 let session = try await getOrCreateSession(for: pair)
                 response = try await session.translate(text)
                 
                 // Versuche erkannte Sprache zu ermitteln
-                if let detected = response.sourceLanguage,
-                   let lang = Language.from(locale: detected) {
+                if let lang = Language.from(locale: response.sourceLanguage) {
                     detectedSource = lang
                 } else {
                     detectedSource = .english // Fallback
@@ -168,7 +189,7 @@ public final class TranslationService: ObservableObject {
         
         do {
             let availability = LanguageAvailability()
-            let status = await availability.status(for: pair.source!, to: pair.target)
+            let status = await availability.status(from: pair.source!, to: pair.target)
             return status == .installed || status == .supported
         }
     }
@@ -211,15 +232,28 @@ public final class TranslationService: ObservableObject {
             return session
         }
         
-        // Neue Session erstellen
-        let configuration = TranslationSession.Configuration(source: pair.source, target: pair.target)
+        guard let source = pair.source else {
+            throw TranslationError.sessionCreationFailed
+        }
         
-        let session = try await TranslationSession(configuration: configuration)
+        // Neue Session erstellen (Apple Translation API ab macOS 26)
+        let session = TranslationSession(installedSource: source, target: pair.target)
         
         translationSession = session
         currentLanguagePair = pair
         
         return session
+    }
+    
+    private func detectSourceLocale(for text: String) -> Locale.Language? {
+        let recognizer = NLLanguageRecognizer()
+        recognizer.processString(text)
+        
+        guard let language = recognizer.dominantLanguage else {
+            return nil
+        }
+        
+        return Locale.Language(identifier: language.rawValue)
     }
     
     private func makeCacheKey(text: String, target: Language, source: Language?) -> String {
@@ -235,20 +269,6 @@ public final class TranslationService: ObservableObject {
             }
         }
         translationCache[key] = result
-    }
-}
-
-// MARK: - LanguagePair Extension
-
-extension LanguagePair: @retroactive Hashable {
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(source?.minimalIdentifier)
-        hasher.combine(target.minimalIdentifier)
-    }
-    
-    public static func == (lhs: LanguagePair, rhs: LanguagePair) -> Bool {
-        lhs.source?.minimalIdentifier == rhs.source?.minimalIdentifier &&
-        lhs.target.minimalIdentifier == rhs.target.minimalIdentifier
     }
 }
 

@@ -176,7 +176,7 @@ public final class AppleSpeechProvider: TranscriptionProvider, @unchecked Sendab
         lock.unlock()
         
         // Konfiguriere Audio-Engine
-        try audioManager.configureAudioEngine()
+        try await audioManager.configureAudioEngine()
         
         // Erstelle Recognition Request
         let request = SFSpeechAudioBufferRecognitionRequest()
@@ -195,8 +195,8 @@ public final class AppleSpeechProvider: TranscriptionProvider, @unchecked Sendab
         lock.unlock()
         
         // Installiere Audio Tap
-        let inputNode = audioManager.inputNode
-        let recordingFormat = audioManager.recordingFormat
+        let inputNode = await audioManager.inputNode
+        let recordingFormat = await audioManager.recordingFormat
         
         inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { [weak self] buffer, _ in
             self?.lock.lock()
@@ -205,7 +205,7 @@ public final class AppleSpeechProvider: TranscriptionProvider, @unchecked Sendab
         }
         
         // Starte Audio-Engine
-        try audioManager.startAudioEngine()
+        try await audioManager.startAudioEngine()
         
         return AsyncStream { continuation in
             self.lock.lock()
@@ -263,9 +263,11 @@ public final class AppleSpeechProvider: TranscriptionProvider, @unchecked Sendab
     
     public func stopStreaming() async {
         lock.lock()
-        defer { lock.unlock() }
         
-        guard isStreaming else { return }
+        guard isStreaming else {
+            lock.unlock()
+            return
+        }
         
         logger.info("Stoppe Streaming...")
         
@@ -280,11 +282,11 @@ public final class AppleSpeechProvider: TranscriptionProvider, @unchecked Sendab
         // Stream beenden
         streamContinuation?.finish()
         streamContinuation = nil
+        isStreaming = false
+        lock.unlock()
         
         // Audio-Engine stoppen
-        audioManager.stopAudioEngine()
-        
-        isStreaming = false
+        await audioManager.stopAudioEngine()
         
         logger.info("Streaming gestoppt")
     }

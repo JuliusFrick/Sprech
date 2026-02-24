@@ -46,7 +46,6 @@ public final class WhisperProviderAdapter: TranscriptionProvider, @unchecked Sen
     @MainActor private var whisperProvider: WhisperMLXProvider?
     private let modelManager: MLXModelManager
     private let logger = Logger(subsystem: "com.sprech.app", category: "WhisperProviderAdapter")
-    private let lock = NSLock()
     
     // MARK: - Initialization
     
@@ -90,14 +89,15 @@ public final class WhisperProviderAdapter: TranscriptionProvider, @unchecked Sen
     
     public var isAvailable: Bool {
         get async {
-            await status.isAvailable
+            let currentStatus = await status
+            return currentStatus.isAvailable
         }
     }
     
     // MARK: - Configuration
     
     public func configure(with configuration: ProviderConfiguration) async throws {
-        try await MainActor.run {
+        let provider = await MainActor.run { () -> WhisperMLXProvider? in
             if whisperProvider == nil {
                 whisperProvider = WhisperMLXProvider(modelManager: modelManager)
             }
@@ -107,35 +107,39 @@ public final class WhisperProviderAdapter: TranscriptionProvider, @unchecked Sen
                let lang = WhisperModel.WhisperLanguage(rawValue: String(langCode)) {
                 whisperProvider?.language = lang
             }
+            
+            return whisperProvider
         }
         
-        // Initialisieren
-        try await MainActor.run {
-            try await whisperProvider?.initialize()
+        guard let provider else {
+            throw TranscriptionProviderError.providerNotAvailable
         }
+        
+        try await provider.initialize()
     }
     
     // MARK: - Transcription
     
     public func transcribe(audioBuffer: AVAudioPCMBuffer) async throws -> TranscriptionResult {
-        try await MainActor.run {
-            guard let provider = whisperProvider, provider.isReady else {
-                throw TranscriptionProviderError.providerNotAvailable
-            }
-            
-            return try await provider.transcribe(audioBuffer)
+        guard let provider = await MainActor.run(body: { whisperProvider }) else {
+            throw TranscriptionProviderError.providerNotAvailable
         }
+        
+        let ready = await MainActor.run { provider.isReady }
+        guard ready else {
+            throw TranscriptionProviderError.providerNotAvailable
+        }
+        
+        return try await provider.transcribe(audioBuffer)
     }
     
     public func startStreaming() async throws -> AsyncStream<TranscriptionResult> {
-        try await MainActor.run {
-            guard let provider = whisperProvider else {
-                throw TranscriptionProviderError.providerNotAvailable
-            }
-            
-            try await provider.startStreaming()
-            return provider.partialResults
+        guard let provider = await MainActor.run(body: { whisperProvider }) else {
+            throw TranscriptionProviderError.providerNotAvailable
         }
+        
+        try await provider.startStreaming()
+        return await MainActor.run { provider.partialResults }
     }
     
     public func stopStreaming() async {
@@ -166,7 +170,7 @@ public final class WhisperProviderAdapter: TranscriptionProvider, @unchecked Sen
     
     public func deleteModels() async throws {
         let model = WhisperModel.base
-        let modelDir = modelManager.modelDirectory(for: model)
+        let modelDir = await MainActor.run { modelManager.modelDirectory(for: model) }
         
         if FileManager.default.fileExists(atPath: modelDir.path) {
             try FileManager.default.removeItem(at: modelDir)

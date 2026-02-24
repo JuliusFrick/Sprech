@@ -372,10 +372,10 @@ actor WhisperMLXModel {
         
         // Decoder mit autoregressive Generation
         var tokens: [Int] = [
-            processor.tokenizer.sotToken,
+            processor.sotToken,
             processor.languageToken(for: language),
-            processor.tokenizer.transcribeToken,
-            processor.tokenizer.noTimestampsToken
+            processor.transcribeToken,
+            processor.noTimestampsToken
         ]
         
         // Simulierte Token-Generierung

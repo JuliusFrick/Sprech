@@ -218,6 +218,22 @@ public final class WhisperProcessor: Sendable {
         tokenizer.languageToken(for: language.rawValue)
     }
     
+    public var sotToken: Int {
+        tokenizer.sotToken
+    }
+    
+    public var transcribeToken: Int {
+        tokenizer.transcribeToken
+    }
+    
+    public var noTimestampsToken: Int {
+        tokenizer.noTimestampsToken
+    }
+    
+    public var eotToken: Int {
+        tokenizer.eotToken
+    }
+    
     // MARK: - Mel Filter Loading
     
     /// Lädt Mel-Filterbank aus NPZ-Datei

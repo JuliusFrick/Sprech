@@ -27,7 +27,7 @@ import os.log
 ///
 /// **Aktueller Status:** Preview - MLX-Modell verfügbar, Swift-Integration in Entwicklung
 @MainActor
-public final class VoxtralProvider: ObservableObject, TranscriptionProvider {
+public final class VoxtralProvider: ObservableObject {
     
     // MARK: - TranscriptionProvider Protocol
     
@@ -143,7 +143,7 @@ public final class VoxtralProvider: ObservableObject, TranscriptionProvider {
                 HuggingFace: https://huggingface.co/\(self.currentConfiguration.modelVariant.mlxRepositoryId)
                 ═══════════════════════════════════════════════════════
                 """)
-            throw TranscriptionProviderError.notInitialized
+            throw TranscriptionProviderError.notReady
         }
         
         status = .initializing

@@ -128,7 +128,7 @@ public final class SpeechRecognitionService: ObservableObject, Sendable {
         }
         
         // Prüfe Autorisierung
-        guard isAuthorized else {
+        if !isAuthorized {
             let authorized = await requestAuthorization()
             guard authorized else {
                 throw SpeechRecognitionError.notAuthorized

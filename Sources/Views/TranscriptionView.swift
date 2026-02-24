@@ -26,7 +26,7 @@ struct TranscriptionView: View {
                 }
                 .buttonStyle(.borderless)
                 .font(.caption)
-                .foregroundStyle(isCopied ? .green : .accent)
+                .foregroundStyle(isCopied ? .green : .accentColor)
             }
             
             // Text content
@@ -198,12 +198,16 @@ struct HistoryEntryRow: View {
     }
 }
 
-#Preview {
-    TranscriptionView()
-        .environmentObject({
-            let state = AppState()
-            state.transcribedText = "Das ist ein Beispieltext der transkribiert wurde."
-            return state
-        }())
-        .frame(width: 320)
+#if DEBUG
+struct TranscriptionView_Previews: PreviewProvider {
+    static var previews: some View {
+        TranscriptionView()
+            .environmentObject({
+                let state = AppState()
+                state.transcribedText = "Das ist ein Beispieltext der transkribiert wurde."
+                return state
+            }())
+            .frame(width: 320)
+    }
 }
+#endif

@@ -179,7 +179,7 @@ public final class TextInsertionService: Sendable {
                 kAXTextFieldRole as String,
                 kAXTextAreaRole as String,
                 kAXComboBoxRole as String,
-                kAXSearchFieldRole as String
+                "AXSearchField"
             ]
             
             if textRoles.contains(role) {
