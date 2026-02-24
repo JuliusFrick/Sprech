@@ -62,17 +62,11 @@ jobs:
         run: |
           APP_PATH="build/Build/Products/Release/Sprech.app"
           if [ -d "$APP_PATH" ]; then
-            create-dmg --volname "Sprech" --window-pos 200 120 --window-size 600 400 \
-              --icon-size 100 --icon "Sprech.app" 150 185 \
-              --hide-extension "Sprech.app" --app-drop-link 450 185 \
-              "Sprech-${{ github.ref_name }}-macOS.dmg" "$APP_PATH" \
-            || true
-            if [ ! -f "Sprech-${{ github.ref_name }}-macOS.dmg" ]; then
-              create-dmg --volname "Sprech" --window-pos 200 120 --window-size 600 400 \
-                --icon-size 100 --icon "Sprech.app" 150 185 \
-                --hide-extension "Sprech.app" --app-drop-link 450 185 \
-                "Sprech-${{ github.ref_name }}-macOS.dmg" "$APP_PATH"
-            fi
+            mkdir -p dmg
+            trap 'rm -rf dmg' EXIT
+            cp -R "$APP_PATH" dmg/
+            hdiutil create -volname "Sprech" -srcfolder dmg \
+              -ov -format UDZO "Sprech-${{ github.ref_name }}-macOS.dmg"
           else
             find build -name "*.app" -type d
             exit 1
