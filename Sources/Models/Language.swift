@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import Translation
 
 /// Unterstützte Sprachen für die Übersetzungsfunktion
 public enum Language: String, CaseIterable, Codable, Sendable, Identifiable {
