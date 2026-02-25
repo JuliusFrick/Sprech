@@ -4,3 +4,20 @@ targets:
     type: application
     platform: macOS
     sources: [Sources, Sprech/Resources]
+  SprechTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources: [Tests]
+    settings:
+      GENERATE_INFOPLIST_FILE: YES
+    dependencies:
+      - target: Sprech
+
+schemes:
+  Sprech:
+    build:
+      targets:
+        Sprech: all
+    test:
+      targets:
+        - SprechTests
